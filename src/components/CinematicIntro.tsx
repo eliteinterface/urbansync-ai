@@ -131,7 +131,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
 
     useEffect(() => {
         if (phase !== 2) return;
-        const t = setTimeout(() => setPhase(3), 1200);
+        const t = setTimeout(() => setPhase(3), 2800);
         return () => clearTimeout(t);
     }, [phase]);
 

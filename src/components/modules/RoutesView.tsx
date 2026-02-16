@@ -173,7 +173,10 @@ const RoutesView = () => {
                     center={GODOY_CRUZ_CENTER}
                     zoom={15}
                     scrollWheelZoom={false}
-                    dragging={true}
+                    dragging={false}
+                    doubleClickZoom={false}
+                    touchZoom={false}
+                    zoomControl={false}
                     className="h-[50vh] w-full sm:h-[60vh]"
                     style={{ background: '#0f172a' }}
                 >

@@ -411,7 +411,7 @@ const ScreenContainers = () => {
 
     return (
         <div className="flex flex-col p-4 pt-8 pb-20">
-            <div className="flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/40 h-28 border border-slate-700/30 backdrop-blur-sm">
+            <div className="flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/40 h-28 backdrop-blur-sm">
                 <div className="text-center">
                     <p className="text-xl">📍</p>
                     <p className="text-[10px] text-slate-400">Contenedores cercanos</p>
