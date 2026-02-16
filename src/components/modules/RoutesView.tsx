@@ -10,31 +10,111 @@ import {
     ROUTE_STATS,
 } from '../../mocks/mockData';
 
+// ── Uber-style smooth truck animation ──
+// Injects a pulsing radar glow + smoothly interpolated truck marker using rAF
+const TRUCK_STYLE = `
+  .truck-marker {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; transition: transform 0.15s ease-out;
+    filter: drop-shadow(0 2px 8px rgba(52,211,153,0.5));
+  }
+  .truck-pulse {
+    position: absolute; top: 50%; left: 50%;
+    width: 48px; height: 48px;
+    margin: -24px 0 0 -24px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(52,211,153,0.35) 0%, transparent 70%);
+    animation: truck-radar 2s ease-out infinite;
+  }
+  @keyframes truck-radar {
+    0%   { transform: scale(0.6); opacity: 0.6; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+`;
+
+const getBearing = (a: [number, number], b: [number, number]) => {
+    const dLon = ((b[1] - a[1]) * Math.PI) / 180;
+    const lat1 = (a[0] * Math.PI) / 180;
+    const lat2 = (b[0] * Math.PI) / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+};
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
 const AnimatedTruck = ({ coords }: { coords: [number, number][] }) => {
     const map = useMap();
     const markerRef = useRef<L.Marker | null>(null);
-    const indexRef = useRef(0);
+    const rafRef = useRef<number>(0);
+
+    // Inject styles once
+    useEffect(() => {
+        if (document.getElementById('truck-anim-css')) return;
+        const s = document.createElement('style');
+        s.id = 'truck-anim-css';
+        s.textContent = TRUCK_STYLE;
+        document.head.appendChild(s);
+        return () => { s.remove(); };
+    }, []);
 
     const truckIcon = useMemo(
         () =>
             L.divIcon({
-                html: '<span style="font-size:24px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))">🚛</span>',
+                html: '<div class="truck-pulse"></div><div class="truck-marker">🚛</div>',
                 className: '',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15],
+                iconSize: [48, 48],
+                iconAnchor: [24, 24],
             }),
         []
     );
 
     useEffect(() => {
-        if (!map || coords.length === 0) return;
-        const marker = L.marker(coords[0], { icon: truckIcon }).addTo(map);
+        if (!map || coords.length < 2) return;
+
+        const marker = L.marker(coords[0], { icon: truckIcon, zIndexOffset: 1000 }).addTo(map);
         markerRef.current = marker;
-        const interval = setInterval(() => {
-            indexRef.current = (indexRef.current + 1) % coords.length;
-            marker.setLatLng(coords[indexRef.current]);
-        }, 800);
-        return () => { clearInterval(interval); marker.remove(); };
+
+        let segIdx = 0;
+        let t = 0;
+        const speed = 0.012; // progress per frame (~60fps → ~0.7s per segment)
+        let lastTime = 0;
+
+        const animate = (time: number) => {
+            if (!lastTime) lastTime = time;
+            const dt = Math.min(time - lastTime, 50); // cap delta
+            lastTime = time;
+
+            t += speed * (dt / 16.67); // normalize to ~60fps
+
+            if (t >= 1) {
+                t = 0;
+                segIdx = (segIdx + 1) % (coords.length - 1);
+            }
+
+            const from = coords[segIdx];
+            const to = coords[segIdx + 1] || coords[0];
+            const lat = lerp(from[0], to[0], t);
+            const lng = lerp(from[1], to[1], t);
+            marker.setLatLng([lat, lng]);
+
+            // Rotate truck icon toward heading
+            const bearing = getBearing(from, to);
+            const el = marker.getElement();
+            if (el) {
+                const inner = el.querySelector('.truck-marker') as HTMLElement | null;
+                if (inner) inner.style.transform = `rotate(${bearing - 90}deg)`;
+            }
+
+            rafRef.current = requestAnimationFrame(animate);
+        };
+
+        rafRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            cancelAnimationFrame(rafRef.current);
+            marker.remove();
+        };
     }, [map, coords, truckIcon]);
 
     return null;
