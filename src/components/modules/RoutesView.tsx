@@ -18,6 +18,10 @@ const TRUCK_STYLE = `
     font-size: 28px; transition: transform 0.15s ease-out;
     filter: drop-shadow(0 2px 8px rgba(52,211,153,0.5));
   }
+  .truck-emoji {
+    display: inline-block;
+    transform: scaleX(-1);
+  }
   .truck-pulse {
     position: absolute; top: 50%; left: 50%;
     width: 48px; height: 48px;
@@ -61,7 +65,7 @@ const AnimatedTruck = ({ coords }: { coords: [number, number][] }) => {
     const truckIcon = useMemo(
         () =>
             L.divIcon({
-                html: '<div class="truck-pulse"></div><div class="truck-marker">🚛</div>',
+                html: '<div class="truck-pulse"></div><div class="truck-marker"><span class="truck-emoji">🚛</span></div>',
                 className: '',
                 iconSize: [48, 48],
                 iconAnchor: [24, 24],

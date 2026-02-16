@@ -118,7 +118,7 @@ const ScreenTracker = () => {
     const activeStep = eta > 5 ? 0 : eta > 1 ? 1 : 2;
 
     return (
-        <div className="flex h-full flex-col p-4 pt-10">
+        <div className="flex flex-col p-4 pt-8 pb-20">
             {/* Push notification */}
             <AnimatePresence>
                 {showNotif && (
@@ -257,8 +257,8 @@ const ScreenScanner = () => {
     };
 
     return (
-        <div className="flex h-full flex-col p-4 pt-10">
-            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900">
+        <div className="flex flex-col p-4 pt-8 pb-20">
+            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900" style={{ minHeight: 240 }}>
                 {/* Scan lines */}
                 <div className="absolute inset-0 opacity-10"
                     style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(52,211,153,0.15) 3px, rgba(52,211,153,0.15) 4px)' }}
@@ -338,7 +338,7 @@ const ScreenScanner = () => {
 // ── Screen 4: Tu impacto ──
 const ScreenImpact = () => {
     return (
-        <div className="flex h-full flex-col p-4 pt-10">
+        <div className="flex flex-col p-4 pt-8 pb-20">
             <motion.div
                 className="rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/10 p-4 text-center border border-amber-500/20"
                 initial={{ scale: 0.9 }}
@@ -410,7 +410,7 @@ const ScreenContainers = () => {
     };
 
     return (
-        <div className="flex h-full flex-col p-4 pt-10">
+        <div className="flex flex-col p-4 pt-8 pb-20">
             <div className="flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/40 h-28 border border-slate-700/30 backdrop-blur-sm">
                 <div className="text-center">
                     <p className="text-xl">📍</p>

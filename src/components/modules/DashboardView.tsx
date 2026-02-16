@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Box, Leaf, DollarSign } from 'lucide-react';
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { DASHBOARD_KPIS, EVENT_FEED, CHART_DATA } from '../../mocks/mockData';
@@ -31,7 +31,6 @@ const DashboardView = () => {
     const [chartData, setChartData] = useState(CHART_DATA);
     const [events, setEvents] = useState(EVENT_FEED.slice(0, 5));
     const [eventIdx, setEventIdx] = useState(5);
-    const feedRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -65,16 +64,12 @@ const DashboardView = () => {
         const interval = setInterval(() => {
             setEventIdx((prev) => {
                 const nextIdx = prev % EVENT_FEED.length;
-                setEvents((evts) => [...evts.slice(-8), EVENT_FEED[nextIdx]]);
+                setEvents((evts) => [EVENT_FEED[nextIdx], ...evts].slice(0, 5));
                 return prev + 1;
             });
         }, 4000);
         return () => clearInterval(interval);
     }, []);
-
-    useEffect(() => {
-        feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' });
-    }, [events]);
 
     return (
         <motion.section
@@ -203,29 +198,28 @@ const DashboardView = () => {
                     <p className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-500">
                         Feed en tiempo real
                     </p>
-                    <div
-                        ref={feedRef}
-                        className="max-h-[240px] sm:max-h-[320px] space-y-1.5 overflow-y-auto pr-1"
-                        style={{ scrollbarWidth: 'thin' }}
-                    >
-                        {events.map((evt, i) => (
-                            <motion.div
-                                key={`${evt.time}-${i}`}
-                                initial={{ opacity: 0, x: -12, scale: 0.95 }}
-                                animate={{ opacity: 1, x: 0, scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                                className={`flex items-start gap-2 rounded-xl px-2.5 py-2 text-xs transition-colors ${evt.type === 'warning'
-                                    ? 'bg-amber-500/10 hover:bg-amber-500/15'
-                                    : 'bg-emerald-500/10 hover:bg-emerald-500/15'
-                                    }`}
-                            >
-                                <span className="shrink-0 text-sm">{evt.icon}</span>
-                                <div>
-                                    <span className="font-mono text-slate-600">{evt.time}</span>
-                                    <span className="ml-1.5 text-slate-300">{evt.message}</span>
-                                </div>
-                            </motion.div>
-                        ))}
+                    <div className="space-y-1.5 overflow-hidden">
+                        <AnimatePresence initial={false}>
+                            {events.map((evt, i) => (
+                                <motion.div
+                                    key={`${evt.time}-${evt.message}`}
+                                    initial={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
+                                    animate={{ opacity: 1, x: 0, height: 'auto', marginBottom: 6 }}
+                                    exit={{ opacity: 0, x: 20, height: 0, marginBottom: 0 }}
+                                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                                    className={`flex items-start gap-2 rounded-xl px-2.5 py-2 text-xs ${evt.type === 'warning'
+                                        ? 'bg-amber-500/10'
+                                        : 'bg-emerald-500/10'
+                                        }`}
+                                >
+                                    <span className="shrink-0 text-sm">{evt.icon}</span>
+                                    <div>
+                                        <span className="font-mono text-slate-600">{evt.time}</span>
+                                        <span className="ml-1.5 text-slate-300">{evt.message}</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
                 </motion.div>
             </div>
