@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type CinematicIntroProps = {
@@ -9,98 +9,52 @@ const TYPING_TEXT = '> initializing urbansync_ai';
 const LOGO_TEXT = 'URBANSYNC AI';
 const SUBTITLE = 'Inteligencia Artificial para Ciudades Limpias';
 
-// Floating particles for the intro background
-const Particles = () => {
-    const particles = useMemo(
-        () =>
-            Array.from({ length: 30 }, (_, i) => ({
-                id: i,
-                x: Math.random() * 100,
-                y: Math.random() * 100,
-                size: Math.random() * 3 + 1,
-                duration: Math.random() * 8 + 6,
-                delay: Math.random() * 4,
-            })),
-        []
-    );
-
-    return (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            {particles.map((p) => (
-                <motion.div
-                    key={p.id}
-                    className="absolute rounded-full bg-emerald-400"
-                    style={{
-                        width: p.size,
-                        height: p.size,
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                    }}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{
-                        opacity: [0, 0.6, 0],
-                        scale: [0, 1, 0],
-                        y: [0, -60, -120],
-                    }}
-                    transition={{
-                        duration: p.duration,
-                        delay: p.delay,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                    }}
-                />
-            ))}
-        </div>
-    );
-};
-
-// Animated aurora mesh background
-const AuroraMesh = () => (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-            className="absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-3xl"
-            animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, 90, 0],
-            }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-                background:
-                    'conic-gradient(from 0deg, rgba(52,211,153,0.3), rgba(34,211,238,0.2), rgba(168,85,247,0.15), rgba(52,211,153,0.3))',
-            }}
-        />
-        <motion.div
-            className="absolute left-1/3 top-2/3 h-[400px] w-[400px] rounded-full opacity-10 blur-3xl"
-            animate={{
-                scale: [1.1, 0.9, 1.1],
-                x: [-20, 20, -20],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-                background: 'radial-gradient(circle, rgba(34,211,238,0.4) 0%, transparent 70%)',
-            }}
-        />
-    </div>
-);
-
-// Horizontal scan line effect
-const ScanLine = ({ phase }: { phase: number }) =>
-    phase < 3 ? (
-        <motion.div
-            className="pointer-events-none absolute left-0 right-0 h-[1px]"
-            style={{
-                background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.4), transparent)',
-            }}
-            initial={{ top: '0%' }}
-            animate={{ top: '100%' }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-        />
-    ) : null;
+// ── Lightweight CSS-only background ──
+// Uses a single CSS gradient animation instead of 30 JS-animated particles + blurred auroras
+const CSS_BG = `
+  @keyframes intro-glow {
+    0%, 100% { opacity: 0.12; transform: translate(-50%,-50%) scale(1); }
+    50%      { opacity: 0.22; transform: translate(-50%,-50%) scale(1.15); }
+  }
+  @keyframes intro-grid-drift {
+    0%   { background-position: 0 0; }
+    100% { background-position: 60px 60px; }
+  }
+  @keyframes intro-scan {
+    0%   { top: 0%; }
+    100% { top: 100%; }
+  }
+  .intro-glow-orb {
+    position: absolute; left: 50%; top: 50%;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(52,211,153,0.25), rgba(34,211,238,0.15), rgba(168,85,247,0.1), rgba(52,211,153,0.25));
+    animation: intro-glow 6s ease-in-out infinite;
+    will-change: opacity, transform;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .intro-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(52,211,153,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52,211,153,0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: intro-grid-drift 20s linear infinite;
+    pointer-events: none;
+  }
+  .intro-scan {
+    position: absolute; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 10%, rgba(52,211,153,0.35) 50%, transparent 90%);
+    animation: intro-scan 3s linear infinite;
+    pointer-events: none;
+  }
+`;
 
 const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
     const [phase, setPhase] = useState(0);
     const [typedChars, setTypedChars] = useState(0);
-    const [logoChars, setLogoChars] = useState(0);
     const [visible, setVisible] = useState(true);
 
     const skip = useCallback(() => {
@@ -109,6 +63,17 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
         setTimeout(onComplete, 100);
     }, [onComplete]);
 
+    // Inject lightweight CSS once
+    useEffect(() => {
+        if (document.getElementById('intro-css')) return;
+        const s = document.createElement('style');
+        s.id = 'intro-css';
+        s.textContent = CSS_BG;
+        document.head.appendChild(s);
+        return () => { s.remove(); };
+    }, []);
+
+    // Phase 0: typing
     useEffect(() => {
         if (phase !== 0) return;
         if (typedChars >= TYPING_TEXT.length) {
@@ -119,22 +84,21 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
         return () => clearTimeout(t);
     }, [phase, typedChars]);
 
+    // Phase 1: logo reveal → wait → phase 2
     useEffect(() => {
         if (phase !== 1) return;
-        if (logoChars >= LOGO_TEXT.length) {
-            const t = setTimeout(() => setPhase(2), 600);
-            return () => clearTimeout(t);
-        }
-        const t = setTimeout(() => setLogoChars((c) => c + 1), 80);
+        const t = setTimeout(() => setPhase(2), 1600);
         return () => clearTimeout(t);
-    }, [phase, logoChars]);
+    }, [phase]);
 
+    // Phase 2: subtitle → hold 2.8s → phase 3
     useEffect(() => {
         if (phase !== 2) return;
         const t = setTimeout(() => setPhase(3), 2800);
         return () => clearTimeout(t);
     }, [phase]);
 
+    // Phase 3: fade out
     useEffect(() => {
         if (phase !== 3) return;
         const t = setTimeout(() => {
@@ -155,21 +119,12 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                 animate={{ opacity: phase === 3 ? 0 : 1 }}
                 transition={{ duration: 0.5 }}
             >
-                <AuroraMesh />
-                <Particles />
-                <ScanLine phase={phase} />
+                {/* CSS-only background — zero JS overhead */}
+                <div className="intro-glow-orb" />
+                <div className="intro-grid" />
+                {phase < 3 && <div className="intro-scan" />}
 
-                {/* Grid overlay for tech feel */}
-                <div
-                    className="pointer-events-none absolute inset-0 opacity-[0.03]"
-                    style={{
-                        backgroundImage:
-                            'linear-gradient(rgba(52,211,153,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(52,211,153,0.5) 1px, transparent 1px)',
-                        backgroundSize: '60px 60px',
-                    }}
-                />
-
-                <div className="relative z-10 text-center">
+                <div className="relative z-10 text-center px-6">
                     {/* Typing text */}
                     {phase >= 0 && (
                         <motion.p
@@ -188,64 +143,33 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                         </motion.p>
                     )}
 
-                    {/* Logo with spring + glow */}
+                    {/* Logo — single motion.h1 fade-in instead of per-char springs */}
                     {phase >= 1 && (
-                        <h1 className="mb-4 text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-7xl">
-                            {LOGO_TEXT.split('').map((char, i) => (
-                                <motion.span
-                                    key={i}
-                                    initial={{ opacity: 0, y: 20, scale: 0.5, filter: 'blur(8px)' }}
-                                    animate={
-                                        i < logoChars
-                                            ? { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
-                                            : {}
-                                    }
-                                    transition={{
-                                        type: 'spring',
-                                        stiffness: 200,
-                                        damping: 15,
-                                        delay: i * 0.02,
-                                    }}
-                                    className="inline-block"
-                                    style={{
-                                        color: '#fff',
-                                        textShadow:
-                                            i < logoChars
-                                                ? '0 0 40px rgba(52,211,153,0.7), 0 0 80px rgba(52,211,153,0.4), 0 0 120px rgba(34,211,238,0.2)'
-                                                : 'none',
-                                    }}
-                                >
-                                    {char === ' ' ? '\u00A0' : char}
-                                </motion.span>
-                            ))}
-                        </h1>
-                    )}
-
-                    {/* Subtitle with stagger */}
-                    {phase >= 2 && (
-                        <motion.div
-                            initial="hidden"
-                            animate="visible"
-                            variants={{
-                                visible: { transition: { staggerChildren: 0.03 } },
+                        <motion.h1
+                            className="mb-4 text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-7xl"
+                            initial={{ opacity: 0, y: 20, filter: 'blur(12px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            style={{
+                                color: '#fff',
+                                textShadow:
+                                    '0 0 40px rgba(52,211,153,0.6), 0 0 80px rgba(52,211,153,0.3), 0 0 120px rgba(34,211,238,0.15)',
                             }}
                         >
-                            <p className="text-sm text-slate-400 sm:text-base lg:text-lg">
-                                {SUBTITLE.split('').map((char, i) => (
-                                    <motion.span
-                                        key={i}
-                                        variants={{
-                                            hidden: { opacity: 0, y: 5 },
-                                            visible: { opacity: 1, y: 0 },
-                                        }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                        className="inline-block"
-                                    >
-                                        {char === ' ' ? '\u00A0' : char}
-                                    </motion.span>
-                                ))}
-                            </p>
-                        </motion.div>
+                            {LOGO_TEXT}
+                        </motion.h1>
+                    )}
+
+                    {/* Subtitle — single element fade-in */}
+                    {phase >= 2 && (
+                        <motion.p
+                            className="text-sm text-slate-400 sm:text-base lg:text-lg"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                        >
+                            {SUBTITLE}
+                        </motion.p>
                     )}
 
                     {/* Decorative line */}
@@ -259,7 +183,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                     )}
                 </div>
 
-                {/* Skip button with hover effect */}
+                {/* Skip button */}
                 <motion.button
                     onClick={skip}
                     className="absolute bottom-8 right-8 z-20 rounded-full border border-slate-800 px-4 py-1.5 text-xs text-slate-600 transition-all hover:border-slate-600 hover:text-slate-400"

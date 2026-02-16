@@ -96,12 +96,15 @@ const ScreenStatus = () => {
     );
 };
 
-// ── Screen 2: Tu camión en vivo (Uber/Cabify style) ──
+// ── Screen 2: Tu camión en vivo (Uber/Cabify SOTA 2026) ──
 const STEPS = [
     { label: 'Asignado', icon: '📋' },
     { label: 'En camino', icon: '🚛' },
     { label: 'Llegando', icon: '📍' },
 ];
+
+// SVG route path for the animated route visualization
+const ROUTE_PATH = 'M 30 140 C 30 100, 60 80, 90 75 S 140 55, 160 45 S 195 25, 220 30';
 
 const ScreenTracker = () => {
     const [eta, setEta] = useState(8);
@@ -116,9 +119,10 @@ const ScreenTracker = () => {
 
     const progress = ((8 - eta) / 8) * 100;
     const activeStep = eta > 5 ? 0 : eta > 1 ? 1 : 2;
+    const blocks = Math.max(1, Math.ceil(eta * 0.4));
 
     return (
-        <div className="flex flex-col p-4 pt-8 pb-20">
+        <div className="flex flex-col gap-2.5 p-4 pt-8 pb-20">
             {/* Push notification */}
             <AnimatePresence>
                 {showNotif && (
@@ -127,7 +131,7 @@ const ScreenTracker = () => {
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 250, damping: 20 }}
-                        className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-500/20 p-2.5 backdrop-blur-md"
+                        className="flex items-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-500/20 p-2.5 backdrop-blur-md"
                     >
                         <span className="flex-shrink-0 text-base">🔔</span>
                         <div>
@@ -138,45 +142,102 @@ const ScreenTracker = () => {
                 )}
             </AnimatePresence>
 
-            {/* Truck with pulse radar */}
-            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-slate-800/40 backdrop-blur-sm">
-                {/* Road lines */}
-                <div className="absolute inset-0 opacity-5"
-                    style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255,255,255,0.3) 28px, rgba(255,255,255,0.3) 32px)' }}
+            {/* ── Live route visualization ── */}
+            <motion.div
+                className="relative overflow-hidden rounded-2xl bg-slate-800/50 backdrop-blur-sm"
+                style={{ height: 170 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 150, damping: 18 }}
+            >
+                {/* Subtle grid background */}
+                <div className="absolute inset-0 opacity-[0.04]"
+                    style={{
+                        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                        backgroundSize: '24px 24px',
+                    }}
                 />
-                {/* Radar pulse circles */}
-                <motion.div
-                    className="absolute h-28 w-28 rounded-full border border-emerald-400/20"
-                    animate={{ scale: [1, 2.5], opacity: [0.4, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-                />
-                <motion.div
-                    className="absolute h-28 w-28 rounded-full border border-emerald-400/15"
-                    animate={{ scale: [1, 2], opacity: [0.3, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
-                />
-                {/* Truck */}
-                <motion.div
-                    className="relative z-10 text-center"
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                    <span className="text-5xl" style={{ filter: 'drop-shadow(0 4px 12px rgba(52,211,153,0.3))' }}>🚛</span>
-                </motion.div>
-                {/* Route info */}
-                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between rounded-lg bg-slate-900/80 px-2.5 py-1.5 backdrop-blur-md">
+
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 260 170" preserveAspectRatio="none">
+                    {/* Faded full route */}
+                    <path d={ROUTE_PATH} fill="none" stroke="rgba(100,116,139,0.3)" strokeWidth="2" strokeDasharray="4,6" />
+                    {/* Animated traveled segment (emerald) */}
+                    <motion.path
+                        d={ROUTE_PATH}
+                        fill="none"
+                        stroke="url(#routeGrad)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeDasharray="300"
+                        initial={{ strokeDashoffset: 300 }}
+                        animate={{ strokeDashoffset: 300 - (progress / 100) * 300 }}
+                        transition={{ duration: 1, ease: 'easeOut' }}
+                    />
+                    <defs>
+                        <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#34d399" />
+                            <stop offset="100%" stopColor="#22d3ee" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+
+                {/* Origin pin */}
+                <div className="absolute left-3 bottom-4 flex items-center gap-1.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/80 text-[10px]">🏠</div>
                     <div>
-                        <p className="text-[9px] font-medium text-slate-300">📍 Calle San Martín 450</p>
-                        <p className="text-[8px] text-slate-500">Godoy Cruz, Mendoza</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[9px] font-bold text-emerald-400 tabular-nums">{Math.max(1, Math.ceil(eta * 0.4))} cuadras</p>
+                        <p className="text-[8px] font-medium text-slate-300">Tu ubicación</p>
+                        <p className="text-[7px] text-slate-500">Calle San Martín</p>
                     </div>
                 </div>
-            </div>
 
-            {/* Progress steps — Uber style */}
-            <div className="mt-3 flex items-center gap-0.5">
+                {/* Destination pin */}
+                <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                    <div>
+                        <p className="text-[8px] font-medium text-emerald-400 text-right">Camión</p>
+                        <p className="text-[7px] text-slate-500 text-right">{blocks} cuadras</p>
+                    </div>
+                    <motion.div
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 ring-2 ring-emerald-400/30 text-sm"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                        🚛
+                    </motion.div>
+                </div>
+
+                {/* Live badge */}
+                <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5">
+                    <motion.div
+                        className="h-1.5 w-1.5 rounded-full bg-red-400"
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+                    <span className="text-[8px] font-semibold text-red-400">EN VIVO</span>
+                </div>
+            </motion.div>
+
+            {/* ── Driver card ── */}
+            <motion.div
+                className="flex items-center gap-2.5 rounded-xl bg-slate-800/50 p-2.5 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
+            >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-base ring-1 ring-emerald-500/20">
+                    👷
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold text-slate-200 truncate">Carlos M. · Patente ABC-123</p>
+                    <p className="text-[8px] text-slate-500">Camión recolector #7 · Godoy Cruz</p>
+                </div>
+                <div className="flex gap-1">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/60 text-[10px]">💬</div>
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/60 text-[10px]">📞</div>
+                </div>
+            </motion.div>
+
+            {/* ── Progress steps — Uber horizontal stepper ── */}
+            <div className="flex items-center gap-0.5">
                 {STEPS.map((step, i) => (
                     <div key={step.label} className="flex flex-1 items-center">
                         <div className={`flex flex-col items-center gap-0.5 flex-1 ${i <= activeStep ? 'opacity-100' : 'opacity-40'
@@ -204,9 +265,9 @@ const ScreenTracker = () => {
                 ))}
             </div>
 
-            {/* ETA card */}
+            {/* ── ETA card ── */}
             <motion.div
-                className="mt-2.5 rounded-xl bg-slate-800/60 p-3 backdrop-blur-sm"
+                className="rounded-xl bg-slate-800/60 p-3 backdrop-blur-sm"
                 layout
             >
                 <div className="flex items-center justify-between">
