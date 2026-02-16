@@ -38,10 +38,10 @@ const App = () => {
       {/* Footer */}
       <footer className="py-12 text-center">
         <p className="text-xs text-slate-600">
-          UrbanSync AI © 2026 — Proyecto financiado por Agencia I+D+i
+          UrbanSync AI © 2026 — Candidato Agencia I+D+i (TAD)
         </p>
         <p className="mt-1 text-[10px] text-slate-700">
-          Demo de concepto · Datos simulados
+          Demo de concepto · Datos simulados · No representa un producto en producción
         </p>
       </footer>
     </div>

@@ -96,12 +96,18 @@ const ScreenStatus = () => {
     );
 };
 
-// ── Screen 2: Tu camión en vivo ──
+// ── Screen 2: Tu camión en vivo (Uber/Cabify style) ──
+const STEPS = [
+    { label: 'Asignado', icon: '📋' },
+    { label: 'En camino', icon: '🚛' },
+    { label: 'Llegando', icon: '📍' },
+];
+
 const ScreenTracker = () => {
     const [eta, setEta] = useState(8);
     const [showNotif, setShowNotif] = useState(false);
 
-    useEffect(() => { const t = setTimeout(() => setShowNotif(true), 1500); return () => clearTimeout(t); }, []);
+    useEffect(() => { const t = setTimeout(() => setShowNotif(true), 1200); return () => clearTimeout(t); }, []);
     useEffect(() => {
         if (eta <= 0) return;
         const t = setInterval(() => setEta((p) => Math.max(0, p - 1)), 3000);
@@ -109,9 +115,11 @@ const ScreenTracker = () => {
     }, [eta]);
 
     const progress = ((8 - eta) / 8) * 100;
+    const activeStep = eta > 5 ? 0 : eta > 1 ? 1 : 2;
 
     return (
         <div className="flex h-full flex-col p-4 pt-10">
+            {/* Push notification */}
             <AnimatePresence>
                 {showNotif && (
                     <motion.div
@@ -119,48 +127,115 @@ const ScreenTracker = () => {
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 250, damping: 20 }}
-                        className="mb-3 rounded-xl bg-slate-700/80 p-2.5 backdrop-blur-md"
+                        className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-500/20 p-2.5 backdrop-blur-md"
                     >
-                        <p className="text-[10px] font-semibold text-white">🚛 Tu camión se acerca</p>
-                        <p className="text-[9px] text-slate-300">Preparate para sacar la bolsa</p>
+                        <span className="flex-shrink-0 text-base">🔔</span>
+                        <div>
+                            <p className="text-[10px] font-semibold text-emerald-400">Tu camión está en camino</p>
+                            <p className="text-[9px] text-slate-400">Calle San Martín · Godoy Cruz</p>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* Truck with pulse radar */}
             <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-slate-800/40 backdrop-blur-sm">
+                {/* Road lines */}
+                <div className="absolute inset-0 opacity-5"
+                    style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255,255,255,0.3) 28px, rgba(255,255,255,0.3) 32px)' }}
+                />
+                {/* Radar pulse circles */}
                 <motion.div
-                    className="text-center"
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute h-28 w-28 rounded-full border border-emerald-400/20"
+                    animate={{ scale: [1, 2.5], opacity: [0.4, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                />
+                <motion.div
+                    className="absolute h-28 w-28 rounded-full border border-emerald-400/15"
+                    animate={{ scale: [1, 2], opacity: [0.3, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+                />
+                {/* Truck */}
+                <motion.div
+                    className="relative z-10 text-center"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                    <span className="text-5xl">🚛</span>
-                    <p className="mt-2 text-[10px] text-slate-400">Godoy Cruz · Villa Marini</p>
+                    <span className="text-5xl" style={{ filter: 'drop-shadow(0 4px 12px rgba(52,211,153,0.3))' }}>🚛</span>
                 </motion.div>
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-700">
+                {/* Route info */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between rounded-lg bg-slate-900/80 px-2.5 py-1.5 backdrop-blur-md">
+                    <div>
+                        <p className="text-[9px] font-medium text-slate-300">📍 Calle San Martín 450</p>
+                        <p className="text-[8px] text-slate-500">Godoy Cruz, Mendoza</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[9px] font-bold text-emerald-400 tabular-nums">{Math.max(1, Math.ceil(eta * 0.4))} cuadras</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Progress steps — Uber style */}
+            <div className="mt-3 flex items-center gap-0.5">
+                {STEPS.map((step, i) => (
+                    <div key={step.label} className="flex flex-1 items-center">
+                        <div className={`flex flex-col items-center gap-0.5 flex-1 ${i <= activeStep ? 'opacity-100' : 'opacity-40'
+                            }`}>
+                            <motion.span
+                                className="text-sm"
+                                animate={i === activeStep ? { scale: [1, 1.15, 1] } : {}}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                            >
+                                {step.icon}
+                            </motion.span>
+                            <span className={`text-[8px] font-medium ${i <= activeStep ? 'text-emerald-400' : 'text-slate-600'
+                                }`}>{step.label}</span>
+                        </div>
+                        {i < STEPS.length - 1 && (
+                            <div className="mx-1 h-[1px] flex-1 bg-slate-700">
+                                <motion.div
+                                    className="h-full bg-emerald-400"
+                                    animate={{ width: i < activeStep ? '100%' : '0%' }}
+                                    transition={{ duration: 0.5 }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* ETA card */}
+            <motion.div
+                className="mt-2.5 rounded-xl bg-slate-800/60 p-3 backdrop-blur-sm"
+                layout
+            >
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-[9px] uppercase tracking-wider text-slate-500">Tiempo estimado</p>
+                        <motion.p
+                            key={eta}
+                            initial={{ scale: 1.15, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                            className="text-2xl font-bold tabular-nums"
+                            style={{ color: eta <= 2 ? '#34d399' : '#fff' }}
+                        >
+                            {eta > 0 ? `${eta} min` : '¡Llegó!'}
+                        </motion.p>
+                    </div>
+                    <div className={`rounded-full px-2.5 py-1 text-[9px] font-medium ${eta <= 2 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/60 text-slate-400'
+                        }`}>
+                        {activeStep === 0 ? 'Asignado' : activeStep === 1 ? 'En camino' : '¡Llegando!'}
+                    </div>
+                </div>
+                {/* Progress bar */}
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700">
                     <motion.div
-                        className="h-full rounded-r-full bg-gradient-to-r from-emerald-500 to-cyan-400"
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-cyan-400"
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.8, ease: 'easeOut' }}
                     />
                 </div>
-            </div>
-
-            <motion.div
-                className="mt-3 rounded-xl bg-slate-800/60 p-4 text-center backdrop-blur-sm"
-                layout
-            >
-                <p className="text-[10px] text-slate-400">Llega en</p>
-                <motion.p
-                    key={eta}
-                    initial={{ scale: 1.2, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className="text-3xl font-bold tabular-nums"
-                    style={{ color: eta <= 2 ? '#34d399' : '#fff' }}
-                >
-                    {eta > 0 ? `${eta} min` : '¡Ahora!'}
-                </motion.p>
-                <p className="text-[10px] text-slate-500">A {Math.max(1, Math.ceil(eta * 0.4))} cuadras</p>
             </motion.div>
         </div>
     );
@@ -480,27 +555,41 @@ const CitizenView = () => {
                         </AnimatePresence>
                     </div>
 
-                    {/* Tab bar */}
-                    <div className="absolute bottom-0 left-0 right-0 z-20 flex border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
-                        {TABS.map((tab) => (
-                            <motion.button
-                                key={tab.id}
-                                onClick={() => handleTabChange(tab.id)}
-                                className={`flex flex-1 flex-col items-center py-2 transition-colors ${activeTab === tab.id ? 'text-emerald-400' : 'text-slate-600'
-                                    }`}
-                                whileTap={{ scale: 0.9 }}
-                            >
-                                <span className="text-sm">{tab.emoji}</span>
-                                <span className="mt-0.5 text-[7px]">{tab.label}</span>
-                                {activeTab === tab.id && (
-                                    <motion.div
-                                        className="absolute bottom-0 h-[2px] w-8 rounded-full bg-emerald-400"
-                                        layoutId="activeTab"
-                                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                                    />
-                                )}
-                            </motion.button>
-                        ))}
+                    {/* Tab bar — enhanced UX with active pill + glow */}
+                    <div className="absolute bottom-0 left-0 right-0 z-20 flex border-t border-slate-800 bg-slate-900/95 px-1 pb-1 pt-1 backdrop-blur-md">
+                        {TABS.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <motion.button
+                                    key={tab.id}
+                                    onClick={() => handleTabChange(tab.id)}
+                                    className={`relative flex flex-1 flex-col items-center rounded-xl py-2 transition-colors ${isActive ? 'text-emerald-400' : 'text-slate-600'
+                                        }`}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{ minHeight: 44 }}
+                                >
+                                    {/* Active background pill */}
+                                    {isActive && (
+                                        <motion.div
+                                            className="absolute inset-0 rounded-xl bg-emerald-500/10"
+                                            layoutId="activeTabBg"
+                                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                        />
+                                    )}
+                                    <span className="relative text-sm">{tab.emoji}</span>
+                                    <span className={`relative mt-0.5 text-[7px] font-medium ${isActive ? 'text-emerald-400' : 'text-slate-500'
+                                        }`}>{tab.label}</span>
+                                    {/* Glow dot */}
+                                    {isActive && (
+                                        <motion.div
+                                            className="absolute -top-0.5 right-1/2 h-1 w-1 translate-x-1/2 rounded-full bg-emerald-400"
+                                            layoutId="activeTabDot"
+                                            style={{ boxShadow: '0 0 6px rgba(52,211,153,0.8)' }}
+                                        />
+                                    )}
+                                </motion.button>
+                            );
+                        })}
                     </div>
                 </div>
             </motion.div>
