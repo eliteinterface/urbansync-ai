@@ -46,7 +46,7 @@ const ScreenStatus = () => {
     const dateStr = now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return (
-        <div className="flex h-full flex-col p-4 pt-10">
+        <div className="flex flex-col p-4 pt-8 pb-16">
             <p className="mb-2 text-[10px] capitalize text-slate-400">{dateStr}</p>
 
             <motion.div
@@ -529,17 +529,17 @@ const CitizenView = () => {
                 />
 
                 <div
-                    className="phone-notch relative overflow-hidden rounded-[2.5rem] border-[3px] border-slate-700 bg-slate-900 shadow-2xl shadow-emerald-500/10"
-                    style={{ aspectRatio: '9/16' }}
+                    className="phone-notch relative flex flex-col overflow-hidden rounded-[2.5rem] border-[3px] border-slate-700 bg-slate-900 shadow-2xl shadow-emerald-500/10"
+                    style={{ aspectRatio: '9/19' }}
                 >
                     {/* Status bar */}
-                    <div className="relative z-20 flex items-center justify-between px-8 pt-2 text-[8px] text-slate-500">
+                    <div className="relative z-20 flex flex-shrink-0 items-center justify-between px-8 pt-2 text-[8px] text-slate-500">
                         <span>{new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
                         <span>📶 🔋</span>
                     </div>
 
-                    {/* Screen content with AnimatePresence */}
-                    <div className="h-full overflow-hidden pb-14">
+                    {/* Screen content with AnimatePresence — flex-1 ensures it takes remaining space */}
+                    <div className="relative flex-1 min-h-0 overflow-hidden">
                         <AnimatePresence mode="wait" custom={direction}>
                             <motion.div
                                 key={activeTab}
@@ -548,7 +548,7 @@ const CitizenView = () => {
                                 initial="enter"
                                 animate="center"
                                 exit="exit"
-                                className="h-full"
+                                className="absolute inset-0 overflow-y-auto"
                             >
                                 <ActiveScreen />
                             </motion.div>

@@ -205,7 +205,7 @@ const DashboardView = () => {
                     </p>
                     <div
                         ref={feedRef}
-                        className="max-h-48 space-y-1.5 overflow-y-auto pr-1"
+                        className="max-h-[240px] sm:max-h-[320px] space-y-1.5 overflow-y-auto pr-1"
                         style={{ scrollbarWidth: 'thin' }}
                     >
                         {events.map((evt, i) => (
