@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone } from 'lucide-react';
 import {
     WASTE_MOCK,
@@ -7,8 +7,28 @@ import {
     SCANNER_RESULTS,
     GAMIFICATION,
     NEARBY_CONTAINERS,
-    GODOY_CRUZ_CENTER,
 } from '../../mocks/mockData';
+
+// Spring page transition variants
+const pageVariants = {
+    enter: (dir: number) => ({
+        x: dir > 0 ? 60 : -60,
+        opacity: 0,
+        scale: 0.95,
+    }),
+    center: {
+        x: 0,
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.35, ease: 'easeOut' as const },
+    },
+    exit: (dir: number) => ({
+        x: dir < 0 ? 60 : -60,
+        opacity: 0,
+        scale: 0.95,
+        transition: { duration: 0.15 },
+    }),
+};
 
 // ── Screen 1: Estado de hoy ──
 const ScreenStatus = () => {
@@ -18,56 +38,60 @@ const ScreenStatus = () => {
         if (checkedIn) return;
         setCheckedIn(true);
         import('canvas-confetti').then((mod) => {
-            mod.default({ particleCount: 100, spread: 60, origin: { x: 0.5, y: 0.7 } });
+            mod.default({ particleCount: 80, spread: 55, origin: { x: 0.5, y: 0.65 }, colors: ['#34d399', '#22d3ee', '#a78bfa'] });
         });
     }, [checkedIn]);
 
     const now = new Date();
-    const dateStr = now.toLocaleDateString('es-AR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    });
+    const dateStr = now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return (
         <div className="flex h-full flex-col p-4 pt-10">
-            <p className="mb-1 text-[10px] capitalize text-slate-400">{dateStr}</p>
+            <p className="mb-2 text-[10px] capitalize text-slate-400">{dateStr}</p>
 
-            {/* Status card */}
-            <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-800 p-4">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">
-                    Hoy pasa
-                </p>
+            <motion.div
+                className="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 p-4"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+            >
+                <p className="text-[10px] font-medium uppercase tracking-wider text-white/60">Hoy pasa</p>
                 <p className="mt-1 text-xl font-bold text-white">{WASTE_MOCK.tipo_residuo}</p>
-                <div className="mt-2 flex items-center gap-2">
-                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white">
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] text-white backdrop-blur-sm">
                         🕐 {WASTE_MOCK.hora_inicio} - {WASTE_MOCK.hora_fin}
                     </span>
-                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white">
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] text-white backdrop-blur-sm">
                         📍 {WASTE_MOCK.zona}
                     </span>
                 </div>
-            </div>
+            </motion.div>
 
-            {/* Weather strip */}
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-800/60 px-3 py-2">
+            <motion.div
+                className="mt-3 flex items-center gap-2 rounded-xl bg-slate-800/60 px-3 py-2 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
+            >
                 <span className="text-lg">{WEATHER_FALLBACK.icon}</span>
                 <div>
                     <p className="text-xs font-medium">{WEATHER_FALLBACK.temperature}°C</p>
                     <p className="text-[10px] text-slate-400">{WEATHER_FALLBACK.condition}</p>
                 </div>
-            </div>
+                <span className="ml-auto text-[10px] text-slate-500">💧 {WEATHER_FALLBACK.humidity}%</span>
+            </motion.div>
 
-            {/* Check-in button */}
-            <button
+            <motion.button
                 onClick={handleCheckin}
                 className={`mt-auto rounded-xl py-3 text-sm font-semibold transition-all ${checkedIn
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-emerald-500 text-white active:scale-95'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
                     }`}
+                whileHover={!checkedIn ? { scale: 1.02 } : {}}
+                whileTap={!checkedIn ? { scale: 0.97 } : {}}
             >
-                {checkedIn ? '✅ ¡Listo!' : '✅ Ya la saqué'}
-            </button>
+                {checkedIn ? '✅ ¡Registrado!' : '✅ Ya la saqué'}
+            </motion.button>
         </div>
     );
 };
@@ -75,16 +99,12 @@ const ScreenStatus = () => {
 // ── Screen 2: Tu camión en vivo ──
 const ScreenTracker = () => {
     const [eta, setEta] = useState(8);
-    const [showNotification, setShowNotification] = useState(false);
+    const [showNotif, setShowNotif] = useState(false);
 
-    useEffect(() => {
-        const t = setTimeout(() => setShowNotification(true), 2000);
-        return () => clearTimeout(t);
-    }, []);
-
+    useEffect(() => { const t = setTimeout(() => setShowNotif(true), 1500); return () => clearTimeout(t); }, []);
     useEffect(() => {
         if (eta <= 0) return;
-        const t = setInterval(() => setEta((prev) => Math.max(0, prev - 1)), 3000);
+        const t = setInterval(() => setEta((p) => Math.max(0, p - 1)), 3000);
         return () => clearInterval(t);
     }, [eta]);
 
@@ -92,42 +112,56 @@ const ScreenTracker = () => {
 
     return (
         <div className="flex h-full flex-col p-4 pt-10">
-            {/* Push notification */}
-            {showNotification && (
-                <motion.div
-                    initial={{ y: -40, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="mb-3 rounded-xl bg-slate-700/80 p-2.5 text-[10px] backdrop-blur"
-                >
-                    <p className="font-semibold text-white">🚛 Tu camión se acerca</p>
-                    <p className="text-slate-300">Preparate para sacar la bolsa</p>
-                </motion.div>
-            )}
+            <AnimatePresence>
+                {showNotif && (
+                    <motion.div
+                        initial={{ y: -30, opacity: 0, scale: 0.9 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: -20, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 250, damping: 20 }}
+                        className="mb-3 rounded-xl bg-slate-700/80 p-2.5 backdrop-blur-md"
+                    >
+                        <p className="text-[10px] font-semibold text-white">🚛 Tu camión se acerca</p>
+                        <p className="text-[9px] text-slate-300">Preparate para sacar la bolsa</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {/* Map placeholder */}
-            <div className="relative flex-1 rounded-xl bg-slate-800/60 overflow-hidden flex items-center justify-center">
-                <div className="text-center">
-                    <span className="text-4xl">🚛</span>
-                    <p className="mt-2 text-xs text-slate-400">Godoy Cruz · Villa Marini</p>
-                </div>
-                {/* Animated progress route */}
+            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-slate-800/40 backdrop-blur-sm">
+                <motion.div
+                    className="text-center"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    <span className="text-5xl">🚛</span>
+                    <p className="mt-2 text-[10px] text-slate-400">Godoy Cruz · Villa Marini</p>
+                </motion.div>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-700">
                     <motion.div
-                        className="h-full bg-emerald-400"
+                        className="h-full rounded-r-full bg-gradient-to-r from-emerald-500 to-cyan-400"
                         animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
                     />
                 </div>
             </div>
 
-            {/* ETA */}
-            <div className="mt-3 rounded-xl bg-slate-800/60 p-3 text-center">
+            <motion.div
+                className="mt-3 rounded-xl bg-slate-800/60 p-4 text-center backdrop-blur-sm"
+                layout
+            >
                 <p className="text-[10px] text-slate-400">Llega en</p>
-                <p className="text-3xl font-bold text-emerald-400 tabular-nums">
+                <motion.p
+                    key={eta}
+                    initial={{ scale: 1.2, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="text-3xl font-bold tabular-nums"
+                    style={{ color: eta <= 2 ? '#34d399' : '#fff' }}
+                >
                     {eta > 0 ? `${eta} min` : '¡Ahora!'}
-                </p>
+                </motion.p>
                 <p className="text-[10px] text-slate-500">A {Math.max(1, Math.ceil(eta * 0.4))} cuadras</p>
-            </div>
+            </motion.div>
         </div>
     );
 };
@@ -142,58 +176,83 @@ const ScreenScanner = () => {
         setScanning(true);
         setResult(null);
         setTimeout(() => {
-            const random = SCANNER_RESULTS[Math.floor(Math.random() * SCANNER_RESULTS.length)];
-            setResult(random);
+            setResult(SCANNER_RESULTS[Math.floor(Math.random() * SCANNER_RESULTS.length)]);
             setScanning(false);
         }, 1500);
     };
 
     return (
         <div className="flex h-full flex-col p-4 pt-10">
-            {/* Camera frame */}
-            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-slate-900 border border-slate-700">
+            <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900">
                 {/* Scan lines */}
-                <div className="absolute inset-0 opacity-20"
-                    style={{
-                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(52,211,153,0.1) 3px, rgba(52,211,153,0.1) 4px)',
-                    }}
+                <div className="absolute inset-0 opacity-10"
+                    style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(52,211,153,0.15) 3px, rgba(52,211,153,0.15) 4px)' }}
                 />
                 {scanning && (
-                    <div className="absolute left-0 right-0 h-0.5 bg-emerald-400 opacity-80 animate-scan-line" />
+                    <motion.div
+                        className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                        animate={{ top: ['0%', '100%'] }}
+                        transition={{ duration: 1.5, ease: 'linear' }}
+                    />
                 )}
 
-                {result ? (
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
-                    >
-                        <span className="text-4xl">{result.emoji}</span>
-                        <p className="mt-2 text-sm font-bold" style={{ color: result.color }}>
-                            {result.label}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">→ {result.action}</p>
-                    </motion.div>
-                ) : scanning ? (
-                    <div className="text-center">
-                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
-                        <p className="mt-2 text-[10px] text-slate-400">Analizando...</p>
-                    </div>
-                ) : (
-                    <div className="text-center text-slate-500">
-                        <p className="text-3xl">📷</p>
-                        <p className="mt-2 text-[10px]">Apuntá al residuo</p>
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {result ? (
+                        <motion.div
+                            key="result"
+                            initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+                            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                            exit={{ scale: 0.5, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                            className="text-center"
+                        >
+                            <span className="text-5xl">{result.emoji}</span>
+                            <p className="mt-2 text-sm font-bold" style={{ color: result.color }}>{result.label}</p>
+                            <p className="mt-1 text-xs text-slate-400">→ {result.action}</p>
+                        </motion.div>
+                    ) : scanning ? (
+                        <motion.div
+                            key="scanning"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-center"
+                        >
+                            <motion.div
+                                className="mx-auto h-10 w-10 rounded-full border-2 border-emerald-400 border-t-transparent"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            />
+                            <p className="mt-3 text-[10px] text-emerald-400">Analizando...</p>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="idle"
+                            className="text-center text-slate-500"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                        >
+                            <motion.p
+                                className="text-4xl"
+                                animate={{ scale: [1, 1.05, 1] }}
+                                transition={{ duration: 3, repeat: Infinity }}
+                            >
+                                📷
+                            </motion.p>
+                            <p className="mt-2 text-[10px]">Apuntá al residuo</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            <button
+            <motion.button
                 onClick={handleScan}
-                className="mt-3 rounded-xl bg-cyan-500 py-3 text-sm font-semibold text-white active:scale-95 transition-transform"
+                className="mt-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
             >
                 📷 Escanear residuo
-            </button>
-
+            </motion.button>
             <p className="mt-2 text-center text-[8px] text-slate-600">
                 Powered by UrbanSync Vision AI
             </p>
@@ -205,57 +264,62 @@ const ScreenScanner = () => {
 const ScreenImpact = () => {
     return (
         <div className="flex h-full flex-col p-4 pt-10">
-            {/* Streak */}
-            <div className="rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 p-3 text-center border border-amber-500/20">
-                <p className="text-3xl font-bold">🔥 {GAMIFICATION.streak}</p>
+            <motion.div
+                className="rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/10 p-4 text-center border border-amber-500/20"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+            >
+                <motion.p
+                    className="text-4xl font-bold"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                >
+                    🔥 {GAMIFICATION.streak}
+                </motion.p>
                 <p className="text-[10px] text-amber-300">días consecutivos</p>
-            </div>
+            </motion.div>
 
-            {/* Points + Level */}
             <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl bg-slate-800/60 p-3 text-center">
+                <div className="rounded-xl bg-slate-800/60 p-3 text-center backdrop-blur-sm">
                     <p className="text-xl font-bold text-emerald-400">{GAMIFICATION.points}</p>
-                    <p className="text-[10px] text-slate-400">puntos</p>
+                    <p className="text-[9px] text-slate-400">puntos</p>
                 </div>
-                <div className="rounded-xl bg-slate-800/60 p-3 text-center">
+                <div className="rounded-xl bg-slate-800/60 p-3 text-center backdrop-blur-sm">
                     <p className="text-xl">{GAMIFICATION.levelEmoji}</p>
-                    <p className="text-[10px] text-slate-400">{GAMIFICATION.level}</p>
+                    <p className="text-[9px] text-slate-400">{GAMIFICATION.level}</p>
                 </div>
             </div>
 
-            {/* Progress to next level */}
             <div className="mt-3">
-                <div className="flex justify-between text-[10px] text-slate-500">
+                <div className="flex justify-between text-[9px] text-slate-500">
                     <span>{GAMIFICATION.level}</span>
                     <span>{GAMIFICATION.nextLevel}</span>
                 </div>
-                <div className="mt-1 h-2 rounded-full bg-slate-800">
-                    <div
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-800">
+                    <motion.div
                         className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
-                        style={{
-                            width: `${(GAMIFICATION.points / GAMIFICATION.nextLevelPoints) * 100}%`,
-                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(GAMIFICATION.points / GAMIFICATION.nextLevelPoints) * 100}%` }}
+                        transition={{ duration: 1.5, delay: 0.3, ease: 'easeOut' }}
                     />
                 </div>
-                <p className="mt-1 text-center text-[10px] text-slate-500">
-                    {GAMIFICATION.nextLevelPoints - GAMIFICATION.points} pts para el siguiente nivel
-                </p>
             </div>
 
-            {/* Achievements */}
-            <div className="mt-3 space-y-1.5">
-                {GAMIFICATION.achievements.map((ach) => (
-                    <div
+            <div className="mt-3 space-y-1">
+                {GAMIFICATION.achievements.map((ach, i) => (
+                    <motion.div
                         key={ach.label}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] ${ach.unlocked
-                                ? 'bg-emerald-500/10 text-slate-300'
-                                : 'bg-slate-800/40 text-slate-600'
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 150 }}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] ${ach.unlocked ? 'bg-emerald-500/10 text-slate-300' : 'bg-slate-800/30 text-slate-600'
                             }`}
                     >
-                        <span className={ach.unlocked ? '' : 'opacity-40'}>{ach.emoji}</span>
+                        <span className={ach.unlocked ? '' : 'opacity-30 grayscale'}>{ach.emoji}</span>
                         <span>{ach.label}</span>
                         {ach.unlocked && <span className="ml-auto text-emerald-400">✓</span>}
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </div>
@@ -264,20 +328,19 @@ const ScreenImpact = () => {
 
 // ── Screen 5: Contenedores cercanos ──
 const ScreenContainers = () => {
-    const getFillColor = (fill: number) => {
-        if (fill > 80) return { bg: 'bg-red-500/20', text: 'text-red-400', dot: '🔴' };
-        if (fill > 50) return { bg: 'bg-amber-500/20', text: 'text-amber-400', dot: '🟡' };
-        return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', dot: '🟢' };
+    const getFillStyle = (fill: number) => {
+        if (fill > 80) return { bg: 'bg-red-500/15', text: 'text-red-400', bar: 'bg-red-400', dot: '🔴' };
+        if (fill > 50) return { bg: 'bg-amber-500/15', text: 'text-amber-400', bar: 'bg-amber-400', dot: '🟡' };
+        return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', bar: 'bg-emerald-400', dot: '🟢' };
     };
 
     return (
         <div className="flex h-full flex-col p-4 pt-10">
-            {/* Mini map placeholder */}
-            <div className="flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/60 h-32 border border-slate-700/50">
+            <div className="flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/40 h-28 border border-slate-700/30 backdrop-blur-sm">
                 <div className="text-center">
-                    <p className="text-2xl">📍</p>
+                    <p className="text-xl">📍</p>
                     <p className="text-[10px] text-slate-400">Contenedores cercanos</p>
-                    <div className="mt-1 flex justify-center gap-2 text-[8px]">
+                    <div className="mt-1 flex justify-center gap-2 text-[8px] text-slate-500">
                         <span>🟢 &lt;50%</span>
                         <span>🟡 50-80%</span>
                         <span>🔴 &gt;80%</span>
@@ -285,38 +348,33 @@ const ScreenContainers = () => {
                 </div>
             </div>
 
-            {/* List */}
             <div className="mt-3 flex-1 space-y-1.5 overflow-y-auto">
-                {NEARBY_CONTAINERS.map((c) => {
-                    const fill = getFillColor(c.fill);
+                {NEARBY_CONTAINERS.map((c, i) => {
+                    const s = getFillStyle(c.fill);
                     return (
-                        <div
+                        <motion.div
                             key={c.id}
-                            className={`flex items-center gap-2 rounded-lg px-2.5 py-2 ${fill.bg}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 + i * 0.06, type: 'spring', stiffness: 150 }}
+                            className={`flex items-center gap-2 rounded-xl px-3 py-2 ${s.bg}`}
                         >
-                            <span className="text-xs">{fill.dot}</span>
-                            <div className="flex-1">
-                                <p className="text-[10px] font-medium text-slate-300">
-                                    Contenedor #{c.id}
-                                </p>
+                            <span className="text-[10px]">{s.dot}</span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-medium text-slate-300">Contenedor #{c.id}</p>
                                 <p className="text-[8px] text-slate-500">{c.distance}</p>
                             </div>
-                            <div className="text-right">
-                                <p className={`text-sm font-bold tabular-nums ${fill.text}`}>{c.fill}%</p>
-                            </div>
-                            {/* Fill bar */}
-                            <div className="h-6 w-1 rounded-full bg-slate-700 overflow-hidden">
-                                <div
-                                    className={`w-full rounded-full ${c.fill > 80
-                                            ? 'bg-red-400'
-                                            : c.fill > 50
-                                                ? 'bg-amber-400'
-                                                : 'bg-emerald-400'
-                                        }`}
-                                    style={{ height: `${c.fill}%`, marginTop: `${100 - c.fill}%` }}
+                            <p className={`text-sm font-bold tabular-nums ${s.text}`}>{c.fill}%</p>
+                            <div className="h-5 w-1 overflow-hidden rounded-full bg-slate-700">
+                                <motion.div
+                                    className={`w-full rounded-full ${s.bar}`}
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${c.fill}%` }}
+                                    transition={{ delay: 0.3 + i * 0.06, duration: 0.6, ease: 'easeOut' }}
+                                    style={{ marginTop: `${100 - c.fill}%` }}
                                 />
                             </div>
-                        </div>
+                        </motion.div>
                     );
                 })}
             </div>
@@ -324,13 +382,13 @@ const ScreenContainers = () => {
     );
 };
 
-// ── Tabs ──
+// ── Tabs + PhoneFrame ──
 const TABS = [
     { id: 'status', label: 'Hoy', emoji: '📋' },
     { id: 'tracker', label: 'Camión', emoji: '🚛' },
-    { id: 'scanner', label: 'Escanear', emoji: '📷' },
+    { id: 'scanner', label: 'IA', emoji: '📷' },
     { id: 'impact', label: 'Impacto', emoji: '🔥' },
-    { id: 'bins', label: 'Contenedores', emoji: '📍' },
+    { id: 'bins', label: 'Bins', emoji: '📍' },
 ];
 
 const SCREENS: Record<string, React.FC> = {
@@ -343,63 +401,105 @@ const SCREENS: Record<string, React.FC> = {
 
 const CitizenView = () => {
     const [activeTab, setActiveTab] = useState('status');
+    const [direction, setDirection] = useState(0);
     const ActiveScreen = SCREENS[activeTab];
+
+    const handleTabChange = (tabId: string) => {
+        const currentIdx = TABS.findIndex((t) => t.id === activeTab);
+        const nextIdx = TABS.findIndex((t) => t.id === tabId);
+        setDirection(nextIdx > currentIdx ? 1 : -1);
+        setActiveTab(tabId);
+    };
 
     return (
         <motion.section
             id="citizen"
             className="mx-auto max-w-5xl px-5 py-16 sm:py-24"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.5 }}
         >
             {/* Title */}
-            <div className="mb-4 text-center">
+            <motion.div
+                className="mb-8 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+            >
                 <div className="mb-3 flex items-center justify-center gap-2">
-                    <Smartphone className="h-5 w-5 text-emerald-400" />
+                    <div className="rounded-lg bg-emerald-500/10 p-2">
+                        <Smartphone className="h-5 w-5 text-emerald-400" />
+                    </div>
                     <h2 className="text-2xl font-bold sm:text-3xl">La Experiencia del Vecino</h2>
                 </div>
                 <p className="text-sm text-slate-400">
                     Así se ve UrbanSync desde el celular del ciudadano
                 </p>
-            </div>
+            </motion.div>
 
             {/* Phone frame */}
             <motion.div
                 className="relative mx-auto"
                 style={{ maxWidth: 320 }}
-                initial={{ scale: 0.85, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
+                initial={{ scale: 0.85, opacity: 0, y: 30 }}
+                whileInView={{ scale: 1, opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
+                transition={{ type: 'spring', stiffness: 80, damping: 15 }}
             >
-                <div className="phone-notch relative overflow-hidden rounded-[2.5rem] border-[3px] border-slate-700 bg-slate-900 shadow-2xl shadow-emerald-500/10"
+                {/* Glow behind phone */}
+                <div className="pointer-events-none absolute -inset-8 rounded-[3rem] opacity-30 blur-3xl"
+                    style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, transparent 70%)' }}
+                />
+
+                <div
+                    className="phone-notch relative overflow-hidden rounded-[2.5rem] border-[3px] border-slate-700 bg-slate-900 shadow-2xl shadow-emerald-500/10"
                     style={{ aspectRatio: '9/16' }}
                 >
                     {/* Status bar */}
-                    <div className="relative z-20 flex items-center justify-between px-8 pt-2 text-[8px] text-slate-400">
+                    <div className="relative z-20 flex items-center justify-between px-8 pt-2 text-[8px] text-slate-500">
                         <span>{new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
                         <span>📶 🔋</span>
                     </div>
 
-                    {/* Screen content */}
-                    <div className="h-full pb-14">
-                        <ActiveScreen />
+                    {/* Screen content with AnimatePresence */}
+                    <div className="h-full overflow-hidden pb-14">
+                        <AnimatePresence mode="wait" custom={direction}>
+                            <motion.div
+                                key={activeTab}
+                                custom={direction}
+                                variants={pageVariants}
+                                initial="enter"
+                                animate="center"
+                                exit="exit"
+                                className="h-full"
+                            >
+                                <ActiveScreen />
+                            </motion.div>
+                        </AnimatePresence>
                     </div>
 
-                    {/* Bottom tab bar */}
-                    <div className="absolute bottom-0 left-0 right-0 z-20 flex border-t border-slate-800 bg-slate-900/95 backdrop-blur">
+                    {/* Tab bar */}
+                    <div className="absolute bottom-0 left-0 right-0 z-20 flex border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
                         {TABS.map((tab) => (
-                            <button
+                            <motion.button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => handleTabChange(tab.id)}
                                 className={`flex flex-1 flex-col items-center py-2 transition-colors ${activeTab === tab.id ? 'text-emerald-400' : 'text-slate-600'
                                     }`}
+                                whileTap={{ scale: 0.9 }}
                             >
                                 <span className="text-sm">{tab.emoji}</span>
-                                <span className="text-[7px] mt-0.5">{tab.label}</span>
-                            </button>
+                                <span className="mt-0.5 text-[7px]">{tab.label}</span>
+                                {activeTab === tab.id && (
+                                    <motion.div
+                                        className="absolute bottom-0 h-[2px] w-8 rounded-full bg-emerald-400"
+                                        layoutId="activeTab"
+                                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                    />
+                                )}
+                            </motion.button>
                         ))}
                     </div>
                 </div>
