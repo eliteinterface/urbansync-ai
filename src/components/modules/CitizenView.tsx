@@ -191,11 +191,7 @@ const ScreenTracker = () => {
                 </div>
 
                 {/* Destination pin */}
-                <div className="absolute right-3 top-3 flex items-center gap-1.5 z-10">
-                    <div>
-                        <p className="text-[8px] font-medium text-emerald-400 text-right">Camión</p>
-                        <p className="text-[7px] text-slate-500 text-right">{blocks} cuadras</p>
-                    </div>
+                <div className="absolute right-3 top-3 flex flex-col items-end gap-1 z-10">
                     <motion.div
                         className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 ring-2 ring-emerald-400/30 text-sm"
                         animate={{ scale: [1, 1.1, 1] }}
@@ -203,6 +199,10 @@ const ScreenTracker = () => {
                     >
                         🚛
                     </motion.div>
+                    <div className="text-right">
+                        <p className="text-[8px] font-medium text-emerald-400">Camión</p>
+                        <p className="text-[7px] text-slate-500">{blocks} cuadras</p>
+                    </div>
                 </div>
 
                 {/* Live badge */}
