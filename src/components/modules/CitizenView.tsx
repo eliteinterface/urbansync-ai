@@ -103,8 +103,8 @@ const STEPS = [
     { label: 'Llegando', icon: '📍' },
 ];
 
-// SVG route path for the animated route visualization
-const ROUTE_PATH = 'M 30 140 C 30 100, 60 80, 90 75 S 140 55, 160 45 S 195 25, 220 30';
+// SVG route path for the animated route visualization (Reversed: Truck -> House)
+const ROUTE_PATH = 'M 220 30 C 195 25, 160 45, 140 55 S 90 75, 60 85 S 30 100, 30 140';
 
 const ScreenTracker = () => {
     const [eta, setEta] = useState(8);
@@ -182,7 +182,7 @@ const ScreenTracker = () => {
                 </svg>
 
                 {/* Origin pin */}
-                <div className="absolute left-3 bottom-4 flex items-center gap-1.5">
+                <div className="absolute left-3 bottom-4 flex items-center gap-1.5 z-10">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/80 text-[10px]">🏠</div>
                     <div>
                         <p className="text-[8px] font-medium text-slate-300">Tu ubicación</p>
@@ -191,7 +191,7 @@ const ScreenTracker = () => {
                 </div>
 
                 {/* Destination pin */}
-                <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                <div className="absolute right-3 top-3 flex items-center gap-1.5 z-10">
                     <div>
                         <p className="text-[8px] font-medium text-emerald-400 text-right">Camión</p>
                         <p className="text-[7px] text-slate-500 text-right">{blocks} cuadras</p>
@@ -206,7 +206,7 @@ const ScreenTracker = () => {
                 </div>
 
                 {/* Live badge */}
-                <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5">
+                <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 z-10">
                     <motion.div
                         className="h-1.5 w-1.5 rounded-full bg-red-400"
                         animate={{ opacity: [1, 0.3, 1] }}
